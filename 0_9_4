@@ -1,0 +1,743 @@
+from os import path
+from random import randint, choice
+from pandas import read_csv, DataFrame
+from PyQt6.QtWidgets import QDialog, QApplication, QButtonGroup, QGroupBox, QProgressBar, QPushButton, \
+    QVBoxLayout, QPlainTextEdit, QLabel, QMainWindow, QWidget, QComboBox
+import sys
+from PyQt6.QtGui import QTextCharFormat, QColor, QPixmap
+from PyQt6.QtCore import QRect, QCoreApplication, QMetaObject, QTimer
+
+filename = '../data_shape.csv'
+if path.exists(filename):
+    data_shape = read_csv('../data_shape.csv')
+else:
+    data_shape = DataFrame({'Очки': [0]})
+
+
+class Ui_Dialog(object):
+
+    def pickPerson1andPerson2(self):
+        self.timesPerson2LvlStart = 1
+        self.flagAppdateGame = True
+        self.flagActPerson1 = True
+        self.flagActPerson2 = True
+        self.person1 = None
+        self.person2 = None
+        self.coll = 1
+        self.pickHeroes = 0
+        self.list_pick2 = [f'self.person2.hit(self.person1)', 'self.person2.heals()',
+                           'self.person2.qualifyingAbility()', 'self.person2.ult(self.person1)']
+        self.heroes = {0: Lina(ui=self, name='Lina'),
+                       1: PhantomAssassin(ui=self, name='PhantomAssassin'),
+                       2: Bristleback(ui=self, name='Bristleback'),
+                       3: ShadowFiend(ui=self, name='ShadowFiend')}
+
+        self.MainWindow = QMainWindow()
+        self.MainWindow.setObjectName("MainWindow")
+        self.MainWindow.resize(358, 354)
+        self.MainWindow.setWindowTitle('Выбор персонажа')
+        self.centralwidget = QWidget(parent=self.MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+
+        self.groupBox_mainView = QGroupBox(self.heroes[self.pickHeroes].name, parent=self.centralwidget)
+        self.groupBox_mainView.setGeometry(QRect(10, 20, 171, 211))
+        self.groupBox_mainView.setAcceptDrops(False)
+        self.groupBox_mainView.setWhatsThis("")
+        self.groupBox_mainView.setAccessibleName("")
+        self.groupBox_mainView.setAutoFillBackground(False)
+        self.groupBox_mainView.setFlat(True)
+        self.groupBox_mainView.setCheckable(False)
+        self.groupBox_mainView.setChecked(False)
+        self.groupBox_mainView.setObjectName("groupBox_mainView")
+
+        self.fotoPerson1 = QLabel(parent=self.groupBox_mainView)
+        self.fotoPerson1.setGeometry(QRect(20, 10, 151, 191))
+        self.fotoPerson1.setText("")
+        self.fotoPerson1.setPixmap(QPixmap(self.heroes[self.pickHeroes].foto))
+        self.fotoPerson1.setScaledContents(True)
+        self.fotoPerson1.setObjectName("fotoPerson1")
+
+        self.attrebutePerson1 = QLabel(parent=self.groupBox_mainView)
+        self.attrebutePerson1.setGeometry(QRect(20, 10, 41, 41))
+        self.attrebutePerson1.setText("")
+        self.attrebutePerson1.setPixmap(QPixmap(self.heroes[self.pickHeroes].foto_atrebute))
+        self.attrebutePerson1.setScaledContents(True)
+        self.attrebutePerson1.setObjectName("attrebutePerson1")
+
+        self.progressBar_person1Mana_Widget = QProgressBar(parent=self.groupBox_mainView)
+        self.progressBar_person1Mana_Widget.setGeometry(QRect(20, 180, 151, 23))
+        self.progressBar_person1Mana_Widget.setProperty("value", self.heroes[self.pickHeroes].max_mana)
+        self.progressBar_person1Mana_Widget.setMaximum(self.heroes[self.pickHeroes].max_mana)
+        self.progressBar_person1Mana_Widget.setValue(self.heroes[self.pickHeroes].mana)
+        self.progressBar_person1Mana_Widget.setFormat('%v')
+        self.progressBar_person1Mana_Widget.setObjectName("progressBar_person1Mana_Widget")
+        self.progressBar_person1Mana_Widget.setStyleSheet("""
+            QProgressBar {
+                border: 0px;
+                border-radius: 5px;
+                text-align: center;
+                background-color: #162040;
+                color: white;
+            }
+            QProgressBar::chunk {
+                background-color: #3e64c5;
+            }
+        """)
+
+        self.progressBar_personHp_Widget = QProgressBar(parent=self.groupBox_mainView)
+        self.progressBar_personHp_Widget.setGeometry(QRect(20, 160, 151, 23))
+        self.progressBar_personHp_Widget.setProperty("value", self.heroes[self.pickHeroes].max_hp)
+        self.progressBar_personHp_Widget.setValue(self.heroes[self.pickHeroes].max_hp)
+        self.progressBar_personHp_Widget.setFormat('%v')
+        self.progressBar_personHp_Widget.setObjectName("progressBar_personHp_Widget")
+        self.progressBar_personHp_Widget.setStyleSheet("""
+                    QProgressBar {
+                        border: 0px;
+                        border-radius: 5px;
+                        text-align: center;
+                        background-color: #1c270f;
+                        color: white;
+                    }
+                    QProgressBar::chunk {
+                        background-color: #467d29;
+                    }
+                """)
+        self.groupBox_abilites = QGroupBox("Способности", parent=self.centralwidget)
+        self.groupBox_abilites.setGeometry(QRect(200, 20, 131, 171))
+        self.groupBox_abilites.setAccessibleDescription("")
+        self.groupBox_abilites.setCheckable(False)
+        self.groupBox_abilites.setObjectName("groupBox_abilites")
+
+        self.BrowserAbilites = QPlainTextEdit(parent=self.groupBox_abilites)
+        self.BrowserAbilites.setGeometry(QRect(0, 20, 131, 151))
+        self.BrowserAbilites.setObjectName("BrowserAbilites")
+        self.BrowserAbilites.setReadOnly(True)
+        self.BrowserAbilites.appendPlainText('\n'.join(map(str, self.heroes[self.pickHeroes].info())))
+
+        self.comboBox = QComboBox(parent=self.centralwidget)
+        self.comboBox.setGeometry(QRect(260, 200, 69, 22))
+        self.comboBox.setObjectName("comboBox")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.addItem("")
+        self.comboBox.setItemText(0, "Легкая")
+        self.comboBox.setItemText(1, "Нормальная")
+        self.comboBox.setItemText(2, "Сложная")
+        self.comboBox.setItemText(3, "???")
+        self.comboBox.activated.connect(self.handleComboBoxActivation)
+
+        self.label = QLabel('Сложность', parent=self.centralwidget)
+        self.label.setGeometry(QRect(190, 200, 61, 20))
+        self.label.setObjectName("label")
+
+        self.pushButton_choose = QPushButton("Выбрать", parent=self.centralwidget)
+        self.pushButton_choose.setGeometry(QRect(130, 270, 81, 41))
+        self.pushButton_choose.clicked.connect(self.cliced_choose)
+        self.pushButton_choose.setObjectName("pushButton_choose")
+
+        self.pushButton_next = QPushButton("Следующий", parent=self.centralwidget)
+        self.pushButton_next.setGeometry(QRect(230, 270, 81, 41))
+        self.pushButton_next.clicked.connect(self.cliked_next)
+        self.pushButton_next.setObjectName("pushButton_next")
+
+        self.pushButton_previous = QPushButton("Предыдущий", parent=self.centralwidget)
+        self.pushButton_previous.setGeometry(QRect(30, 270, 81, 41))
+        self.pushButton_previous.setObjectName("pushButton_previous")
+        self.pushButton_previous.clicked.connect(self.cliked_previous)
+        self.MainWindow.setCentralWidget(self.centralwidget)
+        QMetaObject.connectSlotsByName(self.MainWindow)
+
+    def cliced_choose(self):
+        self.person1 = self.heroes[self.pickHeroes]
+        remuve_heroes = self.heroes.pop(self.pickHeroes)
+        self.person2 = choice(list(self.heroes.values()))
+        self.person2.lvl = self.timesPerson2LvlStart
+        self.person2.updateStateOfWarrior()
+
+        self.list_random_pick = self.person2.return_pers()
+        self.heroes[self.pickHeroes] = remuve_heroes
+
+        self.MainWindow.close()
+        dialog_myGame = QDialog()
+        self.ui_dialog(dialog_myGame)
+        dialog_myGame.exec()
+
+    def handleComboBoxActivation(self, index):
+        text = self.comboBox.itemText(index)
+        if text == "Легкая":
+            self.timesPerson2LvlStart = 0.5
+        elif text == "Нормальная":
+            self.timesPerson2LvlStart = 1.0
+        elif text == "Сложная":
+            self.timesPerson2LvlStart = 2.0
+        elif text == "???":
+            self.timesPerson2LvlStart = 100.0
+
+    def cliked_next(self):
+        if self.pickHeroes < len(self.heroes.keys()) - 1:
+            self.pickHeroes += 1
+        else:
+            self.pickHeroes = 0
+        self.update_foto()
+
+    def cliked_previous(self):
+        if self.pickHeroes > 0:
+            self.pickHeroes -= 1
+        else:
+            self.pickHeroes = len(self.heroes) - 1
+        self.update_foto()
+
+    def update_foto(self):
+        self.groupBox_mainView.setTitle(self.heroes[self.pickHeroes].name)
+        self.progressBar_personHp_Widget.setMaximum(self.heroes[self.pickHeroes].max_hp)
+        self.progressBar_person1Mana_Widget.setMaximum(self.heroes[self.pickHeroes].max_mana)
+        self.progressBar_personHp_Widget.setValue(self.heroes[self.pickHeroes].max_hp)
+        self.progressBar_person1Mana_Widget.setValue(self.heroes[self.pickHeroes].max_mana)
+        self.fotoPerson1.setPixmap(QPixmap(self.heroes[self.pickHeroes].foto))
+        self.attrebutePerson1.setPixmap(QPixmap(self.heroes[self.pickHeroes].foto_atrebute))
+        self.BrowserAbilites.clear()
+        self.BrowserAbilites.appendPlainText('\n'.join(map(str, self.heroes[self.pickHeroes].info())))
+
+    # Основная игра
+    def ui_dialog(self, Dialog):
+        self.person2.updateStateOfWarrior()
+        self.Dialog = Dialog
+        self.Dialog.setObjectName("Dialog")
+        self.Dialog.resize(539, 407)
+        self.Dialog.setAutoFillBackground(True)
+
+        self.groupBox = QGroupBox(parent=self.Dialog)
+        self.groupBox.setGeometry(QRect(400, 190, 131, 181))
+        self.groupBox.setObjectName("groupBox")
+
+        self.groupBox_person1 = QGroupBox(parent=self.Dialog)
+        self.groupBox_person1.setGeometry(QRect(10, 280, 101, 121))
+        self.groupBox_person1.setObjectName("groupBox_person1")
+
+        self.groupBox_person2 = QGroupBox(parent=self.Dialog)
+        self.groupBox_person2.setGeometry(QRect(400, 10, 131, 181))
+        self.groupBox_person2.setObjectName("groupBox_person2")
+
+        self.verticalLayout = QVBoxLayout(self.groupBox)
+        self.verticalLayout.setObjectName("verticalLayout")
+
+        # --------------------------------------------------------------
+        # progressBar person 1 private
+        self.progressBar_person1_mana = QProgressBar(parent=self.Dialog)
+        self.progressBar_person1_mana.setGeometry(QRect(120, 360, 271, 16))
+        self.progressBar_person1_mana.setProperty("value", self.person1.mana)
+        self.progressBar_person1_mana.setMaximum(self.person1.max_mana)
+        self.progressBar_person1_mana.setFormat("%v/%m")
+        self.progressBar_person1_mana.setStyleSheet("""
+            QProgressBar {
+                border: 0px;
+                border-radius: 5px;
+                text-align: center;
+                background-color: #162040;
+                color: white;
+            }
+            QProgressBar::chunk {
+                background-color: #3e64c5;
+            }
+        """)
+        self.progressBar_person1_mana.setObjectName("progressBar_person1_mana")
+
+        self.progressBar_person1_hp = QProgressBar(parent=self.Dialog)
+        self.progressBar_person1_hp.setGeometry(QRect(120, 340, 271, 16))
+        self.progressBar_person1_hp.setProperty("value", self.person1.hp)
+        self.progressBar_person1_hp.setMaximum(self.person1.max_hp)
+        self.progressBar_person1_hp.setFormat("%v/%m")
+        self.progressBar_person1_hp.setObjectName("progressBar_person1_hp")
+        self.progressBar_person1_hp.setStyleSheet("""
+                    QProgressBar {
+                        border: 0px;
+                        border-radius: 5px;
+                        text-align: center;
+                        background-color: #1c270f;
+                        color: white;
+                    }
+                    QProgressBar::chunk {
+                        background-color: #467d29;
+                    }
+                """)
+        # progressBar person 2 hostile
+        self.progressBar_person2_hp = QProgressBar(parent=self.groupBox_person2)
+        self.progressBar_person2_hp.setGeometry(QRect(10, 140, 101, 16))
+        self.progressBar_person2_hp.setProperty("value", self.person2.hp)
+        self.progressBar_person2_hp.setMaximum(self.person2.max_hp)
+        self.progressBar_person2_hp.setFormat("%v/%m")
+        self.progressBar_person2_hp.setObjectName("progressBar_person2_hp")
+        self.progressBar_person2_hp.setStyleSheet("""
+                    QProgressBar {
+                        border: 0px;
+                        border-radius: 5px;
+                        text-align: center;
+                        background-color: #1c270f;
+                        color: white;
+                    }
+                    QProgressBar::chunk {
+                        background-color: #467d29;
+                    }
+                """)
+
+        self.progressBar_person2_mana = QProgressBar(parent=self.groupBox_person2)
+        self.progressBar_person2_mana.setGeometry(QRect(10, 160, 101, 16))
+        self.progressBar_person2_mana.setProperty("value", self.person2.mana)
+        self.progressBar_person2_mana.setMaximum(self.person2.max_mana)
+        self.progressBar_person2_mana.setFormat("%v/%m")
+        self.progressBar_person2_mana.setObjectName("progressBar_person2_mana")
+        self.progressBar_person2_mana.setStyleSheet("""
+            QProgressBar {
+                border: 0px;
+                border-radius: 5px;
+                text-align: center;
+                background-color: #162040;
+                color: white;
+            }
+            QProgressBar::chunk {
+                background-color: #3e64c5;
+            }
+        """)
+
+        # interaction Buttons person1
+        self.pushButton_hit = QPushButton(parent=self.Dialog)
+        self.pushButton_hit.setGeometry(QRect(120, 290, 61, 41))
+        self.pushButton_hit.setObjectName("pushButton_hit")
+        self.pushButton_hit.clicked.connect(lambda: self.person1.hit(self.person2))
+
+        self.pushButton_heals = QPushButton(parent=self.Dialog)
+        self.pushButton_heals.setGeometry(QRect(190, 290, 61, 41))
+        self.pushButton_heals.setObjectName("pushButton_heals")
+        self.pushButton_heals.clicked.connect(lambda: self.person1.heals())
+
+        self.pushButton_ability_main_attribute = QPushButton(parent=self.Dialog)
+        self.pushButton_ability_main_attribute.setGeometry(QRect(260, 290, 61, 41))
+        self.pushButton_ability_main_attribute.setObjectName("pushButton_ability_main_attribute")
+        self.pushButton_ability_main_attribute.clicked.connect(lambda: self.person1.qualifyingAbility())
+
+        self.pushButton_ult = QPushButton(parent=self.Dialog)
+        self.pushButton_ult.setGeometry(QRect(330, 290, 61, 41))
+        self.pushButton_ult.setObjectName("pushButton_ult")
+        self.pushButton_ult.clicked.connect(lambda: self.person1.ult(self.person2))
+
+        self.pushButtonInfo = QPushButton(parent=self.groupBox)
+        self.pushButtonInfo.setObjectName("pushButton_4")
+        self.pushButtonInfo.clicked.connect(
+            lambda: self.plainTextEdit.appendPlainText('\n'.join(map(str, self.person1.info()))))
+        self.verticalLayout.addWidget(self.pushButtonInfo)
+
+        self.pushButtonExit = QPushButton(parent=self.groupBox)
+        self.pushButtonExit.setObjectName("pushButtonExit")
+        self.pushButtonExit.clicked.connect(lambda: self.exitGameClicked())
+        self.verticalLayout.addWidget(self.pushButtonExit)
+
+        # --------------------------------------------------------------------
+        # отображение виджетов(главное окно, лвл и т д)
+
+        self.plainTextEdit = QPlainTextEdit(parent=self.Dialog)
+        self.plainTextEdit.setGeometry(QRect(10, 20, 371, 261))
+        self.plainTextEdit.setReadOnly(True)
+        self.plainTextEdit.setObjectName("plainTextEdit")
+        self.plainTextEdit.appendPlainText(f'Раунд - {self.coll}-Действуете вы!')
+
+        self.labelImagePerson1 = QLabel(parent=self.groupBox_person1)
+        self.labelImagePerson1.setGeometry(QRect(0, 20, 101, 101))
+        self.labelImagePerson1.setAutoFillBackground(True)
+        self.labelImagePerson1.setText("")
+        self.labelImagePerson1.setPixmap(QPixmap(self.person1.foto))
+        self.labelImagePerson1.setScaledContents(True)
+        self.labelImagePerson1.setWordWrap(False)
+        self.labelImagePerson1.setOpenExternalLinks(False)
+        self.labelImagePerson1.setObjectName("label")
+
+        self.labelImagePerson2 = QLabel(parent=self.groupBox_person2)
+        self.labelImagePerson2.setGeometry(QRect(10, 20, 111, 111))
+        self.labelImagePerson2.setAutoFillBackground(True)
+        self.labelImagePerson2.setText("")
+        self.labelImagePerson2.setPixmap(QPixmap(self.person2.foto))
+        self.labelImagePerson2.setScaledContents(True)
+        self.labelImagePerson2.setWordWrap(False)
+        self.labelImagePerson2.setOpenExternalLinks(False)
+        self.labelImagePerson2.setObjectName("labelImagePerson2")
+
+        self.puchbutton_group = QButtonGroup()
+        self.puchbutton_group.addButton(self.pushButton_hit)
+        self.puchbutton_group.addButton(self.pushButton_heals)
+        self.puchbutton_group.addButton(self.pushButton_ability_main_attribute)
+        self.puchbutton_group.addButton(self.pushButton_ult)
+        self.puchbutton_group.buttonClicked.connect(self.button_cliked)
+
+        self.time = QTimer(self.Dialog)
+        self.time.timeout.connect(self.update_progress_bar)
+        self.time.start()
+        self.retranslateUi(self.Dialog)
+        QMetaObject.connectSlotsByName(self.Dialog)
+
+    def button_cliked(self):
+        if self.flagActPerson2:
+            self.playPerson2()
+            self.return_breakDEF()
+
+            if not self.flagAppdateGame:
+                self.plainTextEdit.clear()
+            while not self.flagActPerson2:
+                if self.flagActPerson2:
+                    break
+                self.playPerson2()
+                self.coll -= 1
+            self.return_breakDEF()
+            self.plainTextEdit.appendPlainText(f'\n')
+            self.flagActPerson1 = True
+        self.flagActPerson2 = True
+        self.change_text_color(self.plainTextEdit, QColor('black'))
+        self.plainTextEdit.appendPlainText(f'Раунд - {self.coll}--Действуете вы!')
+        self.return_breakDEF()
+        if not self.flagAppdateGame:
+            self.plainTextEdit.clear()
+        self.return_breakDEF()
+
+    def playPerson2(self):
+        self.change_text_color(self.plainTextEdit, QColor('red'))
+        self.plainTextEdit.appendPlainText(f'\n')
+        self.plainTextEdit.appendPlainText(f'Раунд - {self.coll}--Действует враг!')
+        random_skills = choice(self.list_random_pick)
+        eval(self.list_pick2[random_skills])
+        self.coll += 1
+
+    def return_breakDEF(self):
+        if max(0, self.person1.hp) == 0:
+            self.flagAppdateGame = False
+            self.flagActPerson1 = False
+            self.pushButton_hit.setEnabled(self.flagActPerson1)
+            self.pushButton_heals.setEnabled(self.flagActPerson1)
+            self.pushButton_ability_main_attribute.setEnabled(self.flagActPerson1)
+            self.pushButton_ult.setEnabled(self.flagActPerson1)
+            self.pushButtonInfo.setEnabled(self.flagActPerson1)
+            self.change_text_color(self.plainTextEdit, QColor('red'))
+            data_shape["Очки"] = data_shape["Очки"] - (a := 20 * self.timesPerson2LvlStart)
+            self.plainTextEdit.appendPlainText(
+                f'Победил {self.person2.name}! Вы потеряли {a} очков! Раундов - {self.coll}')
+            data_shape.to_csv('data_shape.csv', index=False)
+            self.plainTextEdit.appendPlainText(f'У вас {data_shape["Очки"]} очков')
+            self.plainTextEdit.appendPlainText(f'Ваше хп = {self.person1.hp}, хп врага = {self.person2.hp}')
+
+        elif max(0, self.person2.hp) == 0:
+            self.flagAppdateGame = False
+            self.flagActPerson1 = False
+            self.pushButton_hit.setEnabled(self.flagActPerson1)
+            self.pushButton_heals.setEnabled(self.flagActPerson1)
+            self.pushButton_ability_main_attribute.setEnabled(self.flagActPerson1)
+            self.pushButton_ult.setEnabled(self.flagActPerson1)
+            self.pushButtonInfo.setEnabled(self.flagActPerson1)
+            self.change_text_color(self.plainTextEdit, QColor('red'))
+            data_shape["Очки"] = data_shape["Очки"] + (a := 20 * self.timesPerson2LvlStart)
+            self.plainTextEdit.appendPlainText(
+                f'Победил {self.person1.name}! Вы получили {a} очков! Раундов - {self.coll}')
+            data_shape.to_csv('data_shape.csv', index=False)
+            self.plainTextEdit.appendPlainText(f'У вас {data_shape["Очки"]} очков')
+            self.plainTextEdit.appendPlainText(f'Ваше хп = {self.person1.hp}, хп врага = {self.person2.hp}')
+
+    def exitGameClicked(self):
+        self.time.stop()
+        self.Dialog.close()
+        self.person1 = None
+        self.person2 = None
+        self.pickPerson1andPerson2()
+        self.MainWindow.show()
+
+    def retranslateUi(self, Dialog):
+        _translate = QCoreApplication.translate
+        Dialog.setWindowTitle(_translate("Dialog", "BETA-DOTAMIN-0_9_4_9-BETA"))
+        self.pushButton_hit.setText(_translate("Dialog", "1"))
+        self.groupBox_person1.setTitle(_translate("Dialog", self.person1.name))
+        self.pushButton_heals.setText(_translate("Dialog", "2"))
+        self.pushButton_ability_main_attribute.setText(_translate("Dialog", "3"))
+        self.pushButton_ult.setText(_translate("Dialog", "4"))
+        self.groupBox_person2.setTitle(_translate("Dialog", self.person2.name))
+        self.groupBox.setTitle(_translate("Dialog", "Основное меню"))
+        self.pushButtonInfo.setText(_translate("Dialog", "Инфо"))
+        self.pushButtonExit.setText(_translate("Dialog", "Начать заново"))
+
+    def update_progress_bar(self):
+        if self.flagAppdateGame:
+            self.pushButton_hit.setEnabled(self.flagActPerson1)
+            self.pushButton_heals.setEnabled(self.flagActPerson1)
+            self.pushButton_ability_main_attribute.setEnabled(self.flagActPerson1)
+            self.pushButton_ult.setEnabled(self.flagActPerson1)
+            self.pushButtonInfo.setEnabled(self.flagActPerson1)
+            self.change_text_color(self.plainTextEdit, QColor('black'))
+            self.progressBar_person1_hp.setValue(self.person1.hp)
+            self.progressBar_person1_mana.setValue(self.person1.mana)
+            self.progressBar_person2_hp.setValue(self.person2.hp)
+            self.progressBar_person2_mana.setValue(self.person2.mana)
+
+    def change_text_color(self, text_edit, color):
+        text_format = QTextCharFormat()
+        text_format.setForeground(color)
+        cursor = text_edit.textCursor()
+        cursor.mergeCharFormat(text_format)
+        text_edit.mergeCurrentCharFormat(text_format)
+
+
+class Warrior:
+    def __init__(self, ui=Ui_Dialog(), name='Герой'):
+        self.ui = ui
+        self.lvl = 1
+        self.max_hp = 100
+        self.hp = self.max_hp
+        self.armor = 5
+        self.damage = 15
+        self.heal = 20
+        self.max_mana = 50
+        self.mana = self.max_mana
+        self.updateStateOfWarrior()
+        self.name = name
+        self.dound_skills = []
+
+    def updateStateOfWarrior(self):
+        self.max_hp = int(self.max_hp * self.lvl)
+        self.hp = self.max_hp
+        self.armor = int(self.armor * self.lvl)
+        self.damage = int(self.damage * self.lvl)
+        self.heal = int(self.heal * self.lvl)
+        self.max_mana = int(self.max_mana * self.lvl)
+        self.mana = self.max_mana
+
+    def hit(self, person):
+        person.hp -= (a := max(0, self.damage - person.armor))
+        self.ui.plainTextEdit.appendPlainText(f'\nУдар {str(self.name)}! {str(person.name)} потерял {str(a)}')
+        self.ui.flagActPerson2 = True
+
+    def heals(self):
+        if self.mana >= 10 and self.hp < self.max_hp:
+            self.hp += self.heal
+            self.mana -= 10
+            self.ui.plainTextEdit.appendPlainText(f'Герой({self.name}) излечился на {self.heal}, но потерял 10 маны')
+            self.ui.flagActPerson2 = True
+
+        else:
+            self.ui.change_text_color(self.ui.plainTextEdit, QColor('green'))
+            self.ui.plainTextEdit.appendPlainText(
+                f'У персонажа({self.name}) не достаточно маны или максимальное количество хп')
+            self.ui.flagActPerson2 = False
+
+
+class Intelect(Warrior):
+    def __init__(self, ui=Ui_Dialog(), name='Герой'):
+        super().__init__(ui, name)
+        self.foto_atrebute = '_internal/images/hero_intelligence.png'
+        self.dound_skills.append(
+            {"Способность осн. атрибута": "Персонаж восстанавливает 45 ед. маны"})
+        self.max_mana = round(self.mana * 1.6)
+        self.mana = round(self.mana * 1.6)
+        self.damage = round(self.damage * 0.9)
+        self.heal = 35
+
+    def qualifyingAbility(self):
+        if self.mana < self.max_mana:
+            self.mana += 35
+            self.ui.plainTextEdit.appendPlainText(f'Персонаж({self.name}) восстановил себе 35 маны')
+            self.ui.flagActPerson2 = True
+        else:
+            self.ui.change_text_color(self.ui.plainTextEdit, QColor('green'))
+            self.ui.plainTextEdit.appendPlainText(f'У персонажа({self.name}) Максимальное количество маны!')
+            self.ui.flagActPerson2 = False
+
+
+class Agility(Warrior):
+    def __init__(self, ui=Ui_Dialog(), name='Герой'):
+        super().__init__(ui, name)
+        self.foto_atrebute = '_internal/images/hero_agility.png'
+        self.dound_skills.append(
+            {"Способность осн. атрибута": "Персонаж поднимает свой урон на 10 ед., но теряет 10 хп"})
+        self.damage = round(self.damage * 1.2)
+        self.max_hp = round(self.hp * 1.1)
+        self.hp = round(self.hp * 1.1)
+        self.heal = 30
+
+    def qualifyingAbility(self):
+        if self.hp > 10:
+            self.damage += 10
+            self.hp -= 10
+            self.ui.plainTextEdit.appendPlainText(
+                f'Персонаж({self.name}) поднял урон на 10 ед., но за это потерял 10 хп')
+            self.ui.flagActPerson2 = True
+        else:
+            self.ui.change_text_color(self.ui.plainTextEdit, QColor('green'))
+            self.ui.plainTextEdit.appendPlainText(
+                f'У Персонажа({self.name}) недостаточно хп на использование способности')
+            self.ui.flagActPerson2 = False
+
+
+class Force(Warrior):
+    def __init__(self, ui=Ui_Dialog(), name='Герой'):
+        super().__init__(ui, name)
+        self.foto_atrebute = '_internal/images/hero_strength.png'
+        self.dound_skills.append(
+            {"Способность осн. атрибута": "Персонаж умножает свое в 1.5 раза, "
+                                          "но при этом теряет 10 урона(навсегда)"
+                                          " только у вас 10 или более урона"})
+        self.max_hp = round(self.hp * 1.8)
+        self.hp = round(self.hp * 1.8)
+
+    def qualifyingAbility(self):
+        if self.damage >= 20:
+            self.max_hp = round(self.hp * 1.5)
+            self.damage -= 10
+            self.ui.plainTextEdit.appendPlainText(f'Персонаж {self.name} умножил свое хп в 1.5 раза, '
+                                                  f'но потерял 10 урона')
+            self.ui.flagActPerson2 = True
+
+        else:
+            self.ui.change_text_color(self.ui.plainTextEdit, QColor('green'))
+            self.ui.plainTextEdit.appendPlainText(f'Вы({self.name}) больше не можете опустить'
+                                                  f' свой урон этой способностью')
+            self.ui.flagActPerson2 = False
+
+
+class Lina(Intelect):
+    def __init__(self, ui=Ui_Dialog(), name='Герой'):
+        super().__init__(ui, name)
+        self.foto = '_internal/images/linaDotaMin.jpg'
+        self.dound_skills.append({"Ультимативная способность": "Наносит 50 единиц урона противнику и тратит 70 маны"})
+        self.max_mana = round(self.mana * 1.7)
+        self.mana = round(self.mana * 1.7)
+        self.list_random_pick = [0, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3]
+
+    def ult(self, person):
+        if self.mana >= 70:
+            person.hp -= (a := max(0, (50 - person.armor)))
+            self.mana -= 70
+            self.ui.plainTextEdit.appendPlainText(f'Персонаж {self.name} использовал свое умение!'
+                                                  f' {person.name} потерял {a} хп, a вы потеряли 50 маны')
+            self.ui.flagActPerson2 = True
+
+        else:
+            self.ui.change_text_color(self.ui.plainTextEdit, QColor('green'))
+            self.ui.plainTextEdit.appendPlainText(f'У вас({self.name}) не хватает маны! Ваша({self.name})'
+                                                  f' мана - {self.mana}')
+            self.ui.flagActPerson2 = False
+
+    def info(self):
+        return self.dound_skills
+
+    def return_pers(self):
+        return self.list_random_pick
+
+
+class PhantomAssassin(Agility):
+    def __init__(self, ui=Ui_Dialog(), name='Герой'):
+        super().__init__(ui, name)
+        self.foto = '_internal/images/Dota2phantomassassin.jpg'
+        self.dound_skills.append(
+            {"Ультимативная способность": "Наносит случайное количество урона противнику в диапазоне "
+                                          "от урона персонажа до 30 единиц и потеряет рандомное значение"
+                                          " от 1 до 20 хп"})
+        self.list_random_pick = [0, 0, 1, 1, 1, 2, 2, 3, 3, 3, 3]
+
+    def ult(self, person):
+        person.hp -= (a := max(0, randint(self.damage, (self.damage + 30)) - person.armor))
+        self.hp -= (d := randint(1, 20))
+        self.ui.plainTextEdit.appendPlainText(f'Персонаж {self.name} использовал свое умение и потерял {d} хп!'
+                                              f' {person.name} потерял {a} хп')
+
+    def info(self):
+        return self.dound_skills
+
+    def return_pers(self):
+        return self.list_random_pick
+
+
+class Bristleback(Force):
+    def __init__(self, ui=Ui_Dialog(), name='Герой'):
+        super().__init__(ui, name)
+        self.foto = '_internal/images/bristelbekDotaMinFalse.jpg'
+        self.dound_skills.append({"Ультимативная способность": "Вы поворачиваетесь к противнику спиной,"
+                                                               " от чего получаете 55 армора,"
+                                                               "что дает вам сопротивление от всего урона,"
+                                                               "но при этом теряете 20 урона"})
+        self.spina = False
+        self.damage = 40
+        self.list_random_pick = [0, 0, 0, 0, 1, 1, 2, 3, 3, 3, 3]
+
+    def ult(self, person):
+        if self.spina:
+            self.foto = '_internal/images/bristelbekDotaMinFalse.jpg'
+            self.ui.labelImagePerson1.setPixmap(QPixmap(self.ui.person1.foto))
+            self.ui.labelImagePerson2.setPixmap(QPixmap(self.ui.person2.foto))
+            self.armor -= 55
+            self.damage += 20
+            self.ui.plainTextEdit.appendPlainText(f'Персонаж {self.name} повернулся обратно к {person.name}'
+                                                  f' и потеряли 45, но вернули себе 20 урона')
+            self.spina = False
+            self.flagActPerson2 = True
+
+        else:
+            self.foto = '_internal/images/bristelbekDotaMinTrue.jpg'
+            self.ui.labelImagePerson1.setPixmap(QPixmap(self.ui.person1.foto))
+            self.ui.labelImagePerson2.setPixmap(QPixmap(self.ui.person2.foto))
+            self.armor += 55
+            self.damage -= 20
+            self.ui.plainTextEdit.appendPlainText(f'Персонаж {self.name} повернулся к {person.name} спиной '
+                                                  f'и получили 45, но потеряли 20 урона')
+            self.spina = True
+            self.ui.flagActPerson2 = True
+
+    def info(self):
+        return self.dound_skills
+
+    def return_pers(self):
+        return self.list_random_pick
+
+
+class ShadowFiend(Agility):
+    def __init__(self, ui=Ui_Dialog(), name='Герой'):
+        super().__init__(ui, name)
+        self.foto = '_internal/images/sfDotaMin.png'
+        self.dound_skills.append({"Ультимативная способность": "Вы даете по врагу один коил уроном 16 ед. "
+                                                               "и каждый последующий коил будет умножаться "
+                                                               "на число используемых до 3. "
+                                                               "Когда вы используете коил 3 раза, "
+                                                               "то противник пугается и пропускает свой ход"})
+        self.max_mana = round(self.mana * 1.4)
+        self.mana = round(self.mana * 1.4)
+        self.max_hp = round(self.max_hp * 1.1)
+        self.hp = round(self.hp * 1.1)
+        self.damage = round(self.damage + 4)
+        self.list_random_pick = [0, 0, 0, 1, 1, 2, 3, 3, 3]
+        self.i = 0
+
+    def ult(self, person):
+        if self.i < 3 and self.mana >= 15:
+            self.i += 1
+            person.hp -= (a := max(0, round((14 * self.i) - person.armor)))
+            self.mana -= 15
+            self.ui.plainTextEdit.appendPlainText(f'Персонаж {self.name} нанес урон койлом противнику {person.name} '
+                                                  f'{a} урона, {self.i}/3')
+            self.ui.flagActPerson2 = True
+            if self.i == 3:
+                self.i = 0
+                self.ui.change_text_color(self.ui.plainTextEdit, QColor('green'))
+                self.ui.plainTextEdit.appendPlainText(
+                    f'Персонаж {self.name} испугал своего противника {person.name} 3 койлами и он пропускает свой ход')
+                self.ui.flagActPerson2 = False
+        else:
+            self.ui.plainTextEdit.appendPlainText(
+                f'У Персонажа({self.name}) не хватает маны! Стоимость способности - 15 ед. маны')
+            self.ui.flagActPerson2 = False
+
+    def info(self):
+        return self.dound_skills
+
+    def return_pers(self):
+        return self.list_random_pick
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    dialog = QDialog()
+    playerM = Ui_Dialog()
+    playerM.pickPerson1andPerson2()
+    playerM.MainWindow.show()
+    sys.exit(app.exec())
